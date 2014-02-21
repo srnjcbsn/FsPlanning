@@ -43,6 +43,8 @@
     <Compile Include="Component1.fs" />
     <Compile Include="PriorityQueue.fs" />
     <Compile Include="Searching.fs" />
+    <Compile Include="Searching\AStar.fs" />
+    <Compile Include="Searching\AStar.fsi" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets" />
 </Project>
