@@ -3,6 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{4925A630-B079-445d-BCD4-3A9C94FE9307}") = "FsPlanning", "FsPlanning\FsPlanning.fsproj", "{06CC68A7-84B7-4352-8700-FD9F79DAA71B}"
 EndProject
+Project("{4925A630-B079-445d-BCD4-3A9C94FE9307}") = "BallsInBaskets", "BallsInBaskets\BallsInBaskets.fsproj", "{F42AF597-E621-4F55-B10E-A156EE45DB65}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -13,8 +15,12 @@ Global
 		{06CC68A7-84B7-4352-8700-FD9F79DAA71B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{06CC68A7-84B7-4352-8700-FD9F79DAA71B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{06CC68A7-84B7-4352-8700-FD9F79DAA71B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F42AF597-E621-4F55-B10E-A156EE45DB65}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F42AF597-E621-4F55-B10E-A156EE45DB65}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F42AF597-E621-4F55-B10E-A156EE45DB65}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F42AF597-E621-4F55-B10E-A156EE45DB65}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
-		StartupItem = FsPlanning\FsPlanning.fsproj
+		StartupItem = BallsInBaskets\BallsInBaskets.fsproj
 	EndGlobalSection
 EndGlobal
