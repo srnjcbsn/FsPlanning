@@ -1,4 +1,5 @@
-﻿namespace FsPlanning.Searching
+﻿namespace FsPlanning
 module AStar =
+    open FsPlanning.Searching
     
-    val Solve : Problem<'a,'b> -> (SearchNode<'a,'b> option)
+    val Solve : Problem<'a,'b> -> 'b list option when 'a : comparison

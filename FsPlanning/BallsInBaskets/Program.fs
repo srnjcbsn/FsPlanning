@@ -7,13 +7,13 @@ module BallsInBaskets.Main
 
 open System
 open BIB
-open FsPlanning.Searching
+open FsPlanning
 
 let someFunction x y = x + y
 
 [<EntryPoint>]
 let main args = 
-    let prob = problem 3 (Map [(1,1)]) (Map.find 1 >> ((=) 3))
-    printfn "%A" <| aStar prob
+    let prob = problem 3 (Map [(1,1);(2,2);(3,3)]) ((=) (Map [(1,2);(2,3);(3,1)]))
+    printfn "%A" <| AStar.Solve prob
     0
 

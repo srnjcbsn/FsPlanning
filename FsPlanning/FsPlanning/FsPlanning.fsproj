@@ -40,11 +40,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
-    <Compile Include="Component1.fs" />
     <Compile Include="PriorityQueue.fs" />
     <Compile Include="Searching.fs" />
-    <Compile Include="Searching\AStar.fs" />
     <Compile Include="Searching\AStar.fsi" />
+    <Compile Include="Searching\AStar.fs" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets" />
 </Project>

@@ -1,4 +1,4 @@
-﻿namespace FsPlanning.Searching
+﻿namespace FsPlanning
 module AStar =
     open FsPlanning.Searching
 
@@ -21,8 +21,14 @@ module AStar =
             | true  -> Some bestNode
             | false -> aStar' problem frontier'' explored
 
+    // Come up with better naming
+    let rec unRavelPath node = 
+        match node.Parent with
+        | Some node' -> node.Action.Value :: unRavelPath node'
+        | None -> []
+
     let Solve problem =
-        let node = initialNode problem
-        aStar' problem [node] Set.empty
-
-
+        let startNode = initialNode problem
+        match aStar' problem [startNode] Set.empty with
+        | Some endNode -> Some <| unRavelPath endNode
+        | None -> None
