@@ -31,7 +31,7 @@
 
     module PriorityQueue = 
 
-        let add cost state (pq : PriorityQueue<_,_>) = pq.Add (cost, state)
+        let add priority state (pq : PriorityQueue<_,_>) = pq.Add (priority, state)
 
         let pop (pq : PriorityQueue<_,_>) = pq.Pop ()
 
@@ -41,6 +41,5 @@
 
         let ofSeq elems = new PriorityQueue<_,_> (elems)
 
-            
-   
+        let empty<'TState,'TPriority when 'TState : comparison and 'TPriority : comparison> = new PriorityQueue<_,_> ([])
     
