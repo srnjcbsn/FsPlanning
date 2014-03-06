@@ -88,7 +88,7 @@ module Searching =
 
     let rec unRavelPath node = 
         match node.Parent with
-        | Some node' -> (unRavelPath node') @ node.Action.Value
+        | Some node' -> (unRavelPath node') @ [node.Action.Value]
         | None -> []
 
     let solve (solver : Problem<'s,'a> -> SearchNode<'s,'a> option) problem =
