@@ -22,6 +22,11 @@ module Searching =
         ; Action   : 'a option
         ; PathCost : int
         }
+
+    type Solution<'a> =
+        { Path : 'a list
+        ; Cost : int
+        }
     
     let initialNode problem =
         { State    = problem.InitialState
@@ -88,6 +93,6 @@ module Searching =
 
     let solve (solver : Problem<'s,'a> -> SearchNode<'s,'a> option) problem =
         match solver problem with
-        | Some solution -> Some <| unRavelPath solution
+        | Some solution -> Some <| { Path = unRavelPath solution; Cost = solution.PathCost }
         | None -> None
 
