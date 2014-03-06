@@ -86,7 +86,7 @@ module Searching =
         | Some node' -> node.Action.Value :: unRavelPath node'
         | None -> []
 
-    let solveProblem (solver : Problem<'s,'a> -> SearchNode<'s,'a> option) problem =
+    let solve (solver : Problem<'s,'a> -> SearchNode<'s,'a> option) problem =
         match solver problem with
         | Some solution -> Some <| unRavelPath solution
         | None -> None
