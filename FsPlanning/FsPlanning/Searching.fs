@@ -80,3 +80,14 @@ module Searching =
         
         let node = initialNode problem
         aStar' [node] Set.empty
+
+    let rec unRavelPath node = 
+        match node.Parent with
+        | Some node' -> node.Action.Value :: unRavelPath node'
+        | None -> []
+
+    let solveProblem (solver : Problem<'s,'a> -> SearchNode<'s,'a> option) problem =
+        match solver problem with
+        | Some solution -> Some <| unRavelPath solution
+        | None -> None
+
