@@ -42,10 +42,14 @@
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="PriorityQueue.fs" />
     <Compile Include="SearchPlan.fs" />
-	<Compile Include="Searching.fs" />
+    <Compile Include="Searching.fs" />
+    <Compile Include="Logic.fs" />
     <Compile Include="Searching\AStar.fsi" />
     <Compile Include="Searching\AStar.fs" />
     <Compile Include="Searching\AStarPlan.fs" />
+    <Compile Include="Planning\POP\Types.fs" />
+    <Compile Include="Planning\POP\Action.fs" />
+	<Compile Include="Planning\POP\Plan.fs" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets" />
 </Project>
