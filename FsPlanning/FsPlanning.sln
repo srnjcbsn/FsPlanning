@@ -1,9 +1,11 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
-Project("{4925A630-B079-445d-BCD4-3A9C94FE9307}") = "FsPlanning", "FsPlanning\FsPlanning.fsproj", "{06CC68A7-84B7-4352-8700-FD9F79DAA71B}"
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FsPlanning", "FsPlanning\FsPlanning.fsproj", "{06CC68A7-84B7-4352-8700-FD9F79DAA71B}"
 EndProject
-Project("{4925A630-B079-445d-BCD4-3A9C94FE9307}") = "BallsInBaskets", "BallsInBaskets\BallsInBaskets.fsproj", "{F42AF597-E621-4F55-B10E-A156EE45DB65}"
+Project("{4925A630-B079-445D-BCD4-3A9C94FE9307}") = "BallsInBaskets", "BallsInBaskets\BallsInBaskets.fsproj", "{F42AF597-E621-4F55-B10E-A156EE45DB65}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FsPlanningTest", "FsPlanningTest\FsPlanningTest.fsproj", "{1188EB71-11E9-4A80-97EB-A6D00BE2E96C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,6 +21,13 @@ Global
 		{F42AF597-E621-4F55-B10E-A156EE45DB65}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F42AF597-E621-4F55-B10E-A156EE45DB65}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F42AF597-E621-4F55-B10E-A156EE45DB65}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1188EB71-11E9-4A80-97EB-A6D00BE2E96C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1188EB71-11E9-4A80-97EB-A6D00BE2E96C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1188EB71-11E9-4A80-97EB-A6D00BE2E96C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1188EB71-11E9-4A80-97EB-A6D00BE2E96C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		StartupItem = BallsInBaskets\BallsInBaskets.fsproj
