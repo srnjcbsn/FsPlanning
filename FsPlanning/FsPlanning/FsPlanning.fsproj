@@ -43,6 +43,7 @@
     <Compile Include="Component1.fs" />
     <Compile Include="PriorityQueue.fs" />
     <Compile Include="Searching.fs" />
+    <Compile Include="Agent\Planning.fs" />
     <Compile Include="Agent\Sensor.fs" />
     <Compile Include="Agent\Actuator.fs" />
     <Compile Include="Agent/BDIAgent.fs" />
