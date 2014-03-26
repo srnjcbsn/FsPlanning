@@ -1,6 +1,8 @@
 ﻿namespace FsPlanning.Agent
 module Planning = 
     
+    open FsPlanning.Searching
+
     type IntentionFilter =
         | Conflictive
         | Harmonic
@@ -11,4 +13,4 @@ module Planning =
         | ManyDesires of DesireTree<'state,'goal> list
     
     type Planner<'TState, 'TAction,'TGoal> =
-        abstract member FormulatePlan : ('TState*'TGoal) -> 
+        abstract member FormulatePlan : ('TState*'TGoal) -> Solution<'TAction>

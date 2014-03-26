@@ -5,9 +5,10 @@
     open Planning
 
     [<AbstractClass>]
-    type public BDIAgent<'TPercept,'TState,'TAction,'TIntention when 'TState : comparison>(initstate,desires) = class 
+    type public BDIAgent<'TPercept,'TState,'TAction,'TIntention when 'TState : comparison>(initstate,desires,planner) = class 
         
         let desires:DesireTree<'TState,'TIntention> = desires
+        let planner:Planner<'TState, 'TAction,'TIntention> = planner
         let mutable intentions = []
         let mutable state = initstate
         let mutable actuators = []
@@ -25,12 +26,8 @@
                 else
                     (lastprio,[])
             | Desire cG ->
-                let optGoal = cG(state)
                 let lp = prio + 1
-                match optGoal with
-                | Some goal -> 
-                    (lp,[(lp,goal)])
-                | _ -> (lp,[])
+                (lp,[(lp,cG)])
                    
             | ManyDesires tree -> 
                 List.fold   (fun (p,ds) t -> 
@@ -53,10 +50,14 @@
             else
                 currentInt
 
-        let decideChooseIntentions intentionFilter state =
+        let buildIntentions intentionFilter state =
             lock intentionLock (fun () -> 
                 let (_,newIntention) = travelDesires 0 state desires
-                let updatedIntentions = List.fold (updateIntentions intentionFilter) intentions newIntention
+                let parallelCalc = Array.Parallel.choose ( fun (p,ai) ->    match (ai state) with
+                                                                            | Some i -> Some (p,i)
+                                                                            | _ -> None )
+                let newActualIntentions = List.ofArray ( parallelCalc (List.toArray newIntention) )
+                let updatedIntentions = List.fold (updateIntentions intentionFilter) intentions newActualIntentions
                 intentions <- updatedIntentions
             )
         
@@ -67,7 +68,7 @@
                         {
                             let percepts = sensor.ReadPercepts()
                             lock stateLock (fun () ->  state <- List.fold (fun s p -> this.AnalyzePercept(p,s) ) state percepts)    
-                               
+                            buildIntentions this.FilterIntention state
                         }
             
             Async.Start comp
@@ -86,7 +87,7 @@
 
         member this.AddAcuator (actuator:Actuator<'TAction>) =
             actuators <- actuator::actuators
-        
+            //actuator.
 
     end
     
