@@ -5,18 +5,18 @@
     open Planning
 
     [<AbstractClass>]
-    type public BDIAgent<'TPercept,'TState,'TAction,'TIntention,'TGoal when 'TState : comparison>(initstate,desires) = class 
+    type public BDIAgent<'TPercept,'TState,'TAction,'TIntention when 'TState : comparison>(initstate,desires) = class 
         
-        let desires:DesireTree<'TState,'TIntention*'TGoal> = desires
+        let desires:DesireTree<'TState,'TIntention> = desires
         let mutable intentions = []
         let mutable state = initstate
         let mutable actuators = []
         let mutable sensors = []
 
         let stateLock = new Object()
+        let intentionLock = new Object()
 
-
-        let rec travelDesires prio state (dTree:DesireTree<_,_*_>) = 
+        let rec travelDesires prio state (dTree:DesireTree<_,_>) = 
             match dTree with
             | Conditional (c,t) ->
                 let lastprio,goals = travelDesires prio state t
@@ -41,21 +41,24 @@
         
         
         let updateIntentions intenfilter currentInt (prio,intention) =
-            let (conflics,_) = List.partition (fun (_,i) ->  
+            let (conflics,harmonic) = List.partition (fun (_,i) ->  
                                                     let filter = intenfilter (i,intention)
                                                     match filter with
                                                     | Conflictive -> true
                                                     | Harmonic -> false
                                                     ) currentInt
-            
-            currentInt
+            let highestPrio = List.forall (fun (cp,_) -> prio > cp) conflics
+            if highestPrio then
+                (prio,intention)::harmonic
+            else
+                currentInt
 
-        let decideGoal intentionFilter state =
-            let (_,intention) = travelDesires 0 state desires
-            let intentions = List.fold (updateIntentions intentionFilter) intentions intention
-
-
-            () 
+        let decideChooseIntentions intentionFilter state =
+            lock intentionLock (fun () -> 
+                let (_,newIntention) = travelDesires 0 state desires
+                let updatedIntentions = List.fold (updateIntentions intentionFilter) intentions newIntention
+                intentions <- updatedIntentions
+            )
         
 
         member private this._newPercepts (sensor:Sensor<'TPercept>) = 

@@ -10,3 +10,5 @@ module Planning =
         | Desire of ('state -> 'goal option)
         | ManyDesires of DesireTree<'state,'goal> list
     
+    type Planner<'TState, 'TAction,'TGoal> =
+        abstract member FormulatePlan : ('TState*'TGoal) -> 
