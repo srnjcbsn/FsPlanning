@@ -1,5 +1,6 @@
 ﻿namespace FsPlanning
 module Searching =
+    open System
 //    open PriorityQueue
 //
 //    type PQ<'a,'b> when 'a : comparison and 'b : comparison = PriorityQueue<'a,'b>
@@ -15,13 +16,21 @@ module Searching =
         ; Result       : 's -> 'a -> 's
         ; StepCost     : 's -> 'a -> int
         }
-
+    
+    [<StructuralEquality>]
+    [<CustomComparison>]
     type SearchNode<'s, 'a> when 'a : equality =
         { State    : 's
         ; Parent   : SearchNode<'s, 'a> option
         ; Action   : 'a option
         ; PathCost : int
         }
+        with
+            interface IComparable with
+                member  self.CompareTo other =
+                    match other with
+                    | :? SearchNode<'s, 'a> as obj -> self.PathCost.CompareTo(obj.PathCost)
+                    | _ -> 0 
 
     type Solution<'a> =
         { Path : 'a list
@@ -62,9 +71,12 @@ module Searching =
         | h :: t -> Some (h, t)
         | _ -> None
 
+    //let flock = new Object();
+    
     let aStar problem =
 
         let updateFrontier explored frontier node = 
+            //lock flock (fun () -> printfn "Frontier size: %A" (List.length frontier))
             let inExplored = Set.contains node.State explored
             let priority = priorityOf node.State frontier
             match (inExplored, priority) with
