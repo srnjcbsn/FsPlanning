@@ -18,8 +18,10 @@
 
         let mutable runningSolution = None
         let mutable solutionsOnHold = []
+        let mutable attemptedPromotions = 0
 
         //locks
+        let attemptPromotionLock = new Object()
         let stateLock = new Object()
         let solutionsLock = new Object()
         let runningSolutionLock = new Object()
@@ -30,7 +32,7 @@
         let generateIntentionId = lock intentionIdLock  (fun () -> intentionIdCounter <- intentionIdCounter + 1L
                                                                    intentionIdCounter)
 
-        let rec travelDesires prio state (dTree:DesireTree<_,_>) = 
+        let rec travelDesires prio state (dTree:DesireTree<'TState,'TIntention>) = 
             match dTree with
             | Conditional (c,t) ->
                 let lastprio,goals = travelDesires prio state t
@@ -67,7 +69,8 @@
         let buildIntentions intentionFilter state =
             lock intentionLock (fun () -> 
                 let (_,newIntention) = travelDesires 0 state desires
-                let parallelCalc = Array.Parallel.choose ( fun (p,ai) ->    match (ai state) with
+                let parallelCalc = Array.Parallel.choose ( fun (p,ai) ->    let calcIntention = ai state
+                                                                            match calcIntention with
                                                                             | Some i -> Some (p,i)
                                                                             | _ -> None )
                 let newActualIntentions = List.ofArray ( parallelCalc (List.toArray newIntention) )
@@ -88,73 +91,69 @@
                     executePlan state intention id rest
                 | None ->
                     (false,plan)
-            
-
-        let attemptPromote id intention plan  =
-            lock solutionsLock (fun () -> solutions <- Map.add id plan solutions)
-            lock runningSolutionLock (fun () ->
-                runningSolution <- Some id
-                let curState = state
-                
-                let planWillWork = planner.PlanWorking (curState,intention,plan)
-                let (planFinished,remaining) =  if planWillWork then
-                                                    executePlan curState intention id plan
-                                                else
-                                                    false,plan
-                runningSolution <- None
-                if planFinished then
-                    lock intentionLock (fun () -> intentions <- Map.remove id intentions)
-                    lock solutionsLock (fun () -> solutions <- Map.remove id solutions )
-                else
-                    lock solutionsLock (fun () -> solutions <- Map.add id remaining solutions )
-                    lock solutionOnHoldLock (fun () -> solutionsOnHold <- id :: solutionsOnHold)
-
-                
-            )
+        
         
 
-//        let checkActuators =
-//            let curSolId = runningSolution
-//            match curSolId with
-//            | Some id -> 
-//                let trySol = Map.tryFind id solutions
-//                match trySol with
-//                | Some sol -> 
-//                    
-//                | _ -> ()
-//            | _ -> ()
+        let intentionsWithSolutions =
+            let tupToTrip ((a,b),c) = (a,b,c) 
+            lock solutionsLock (fun () ->
+                lock intentionLock (fun () ->
+                    Map.map (fun id sol -> tupToTrip (Map.find id intentions,sol) ) solutions))
+        let executePromotedPlan id intention plan =
+            lock solutionOnHoldLock (fun () -> solutionsOnHold <- List.filter (fun sId -> sId <> id) solutionsOnHold)
+            runningSolution <- Some id
+            let curState = state
+                
+            let planWillWork = planner.PlanWorking (curState,intention,plan)
+            let (planFinished,remaining) =  if planWillWork then
+                                                executePlan curState intention id plan
+                                            else
+                                                false,plan
+            runningSolution <- None
+            if planFinished then
+                lock intentionLock (fun () -> intentions <- Map.remove id intentions)
+                lock solutionsLock (fun () -> solutions <- Map.remove id solutions )
+            else
+                lock solutionsLock (fun () -> solutions <- Map.add id remaining solutions )
+                lock solutionOnHoldLock (fun () -> solutionsOnHold <- id :: solutionsOnHold)
 
-//        let planReady id =
-//            let startActuators = 
-//                lock runningSolutionLock    
-//                    (fun () -> 
-//                        match runningSolution with
-//                        | None -> runningSolution <- Some id
-//                                  true
-//                        | _ -> false
-//                    )
-//            if startActuators then
-//                ()
+        let attemptPromote()  =
+            let shouldPromote = lock attemptPromotionLock (fun () ->    if attemptedPromotions >= 2 then
+                                                                            false
+                                                                        else
+                                                                            attemptedPromotions <- attemptedPromotions + 1
+                                                                            true)
+            if shouldPromote then
+                lock runningSolutionLock (fun () ->
+                    let possibePlans = Map.toList intentionsWithSolutions
+                    match possibePlans with
+                    | [] -> ()
+                    | plans ->
+                        let (id,(_,intent,plan)) = List.minBy (fun (_,(desire,_,_)) -> desire) plans
+                        lock runningSolutionLock (fun () -> executePromotedPlan id intent plan)             
+
+                )
+                lock attemptPromotionLock (fun () -> attemptedPromotions <- attemptedPromotions - 1)
+            else
+                ()
         
-//        let asyncIntentionPlanning state (id,intention) =
-//            Async.Start 
-//                (async
-//                    {
-//                        let plan = planner.FormulatePlan (state,intention)
-//                        match plan with
-//                        | Some sol -> 
-//                            lock solutionLock (fun () -> solutions <- Map.add id plan solutions)
-//                        | _ -> ()
-//                    })
+        
+        member private this._actuatorReady () =
+            let comp =
+                    async
+                        {
+                            attemptPromote()
+                        }
+            Async.Start comp
 
         member private this._newPercepts (sensor:Sensor<'TPercept>) = 
+            let percepts = sensor.ReadPercepts()
             let comp =  
                     async
                         {
-                            let percepts = sensor.ReadPercepts()
                             lock stateLock (fun () ->  state <- List.fold (fun s p -> this.AnalyzePercept(p,s) ) state percepts)    
                             buildIntentions this.FilterIntention state
-
+                            attemptPromote()
                         }
             
             Async.Start comp
@@ -173,6 +172,7 @@
 
         member this.AddAcuator (actuator:Actuator<'TAction>) =
             actuators <- actuator::actuators
+            actuator.ActuatorReady.Add(fun _ -> this._actuatorReady())
             //actuator.
 
     end
