@@ -162,7 +162,7 @@
             Async.Start comp
             ()
         
-        abstract member FilterIntention : ('TIntention*'TIntention) -> IntentionFilter
+        abstract member FilterIntention : 'TIntention*'TIntention -> IntentionFilter
         abstract member AnalyzePercept : 'TPercept*'TState -> 'TState
         
        
