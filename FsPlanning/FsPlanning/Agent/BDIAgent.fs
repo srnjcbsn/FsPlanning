@@ -29,9 +29,11 @@
         let intentionLock = new Object()
         let intentionIdLock = new Object()
 
+        //Make a new ID meant for an intention
         let generateIntentionId = lock intentionIdLock  (fun () -> intentionIdCounter <- intentionIdCounter + 1L
                                                                    intentionIdCounter)
-
+        
+        // Put priority to 0, and it will give all desires(in a list) for which their condition is true
         let rec travelDesires prio state (dTree:DesireTree<'TState,'TIntention>) = 
             match dTree with
             | Conditional (c,t) ->
@@ -51,20 +53,21 @@
                             ) (prio,[]) tree 
 
         
-        
-        let updateIntentions intenfilter currentInt (prio,intention) =
+        //Takes an intention and checks if it conflicts with any of the other intentions 
+        //if it has higher desire than the other intentions then 
+        let updateIntentions intenfilter currentInts (prio,intention) =
             let (conflics,harmonic) = Map.partition (fun  _ (_,i) ->  
                                                     let filter = intenfilter (i,intention)
                                                     match filter with
                                                     | Conflictive -> true
                                                     | Harmonic -> false
-                                                    ) currentInt
+                                                    ) currentInts
             let highestPrio = Map.forall (fun _ (cp,_) -> prio > cp) conflics
             if highestPrio then
                 let id = generateIntentionId
                 Map.add id (prio,intention) harmonic
             else
-                currentInt
+                currentInts
 
         let buildIntentions intentionFilter state =
             lock intentionLock (fun () -> 
