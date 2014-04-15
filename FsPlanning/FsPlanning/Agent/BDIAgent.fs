@@ -154,7 +154,7 @@
             let comp =  
                     async
                         {
-                            lock stateLock (fun () ->  state <- List.fold (fun s p -> this.AnalyzePercept(p,s) ) state percepts)    
+                            lock stateLock (fun () ->  state <- this.AnalyzePercept(percepts,state) )   
                             buildIntentions this.FilterIntention state
                             attemptPromote()
                         }
@@ -163,7 +163,7 @@
             ()
         
         abstract member FilterIntention : 'TIntention*'TIntention -> IntentionFilter
-        abstract member AnalyzePercept : 'TPercept*'TState -> 'TState
+        abstract member AnalyzePercept : 'TPercept list*'TState -> 'TState
         
        
            
