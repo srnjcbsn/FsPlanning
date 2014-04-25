@@ -19,6 +19,7 @@
         let mutable runningSolution = None
         let mutable solutionsOnHold = []
         let mutable attemptedPromotions = 0
+        let mutable solving = Set.empty
 
         //locks
         let attemptPromotionLock = new Object()
@@ -28,6 +29,7 @@
         let solutionOnHoldLock = new Object()
         let intentionLock = new Object()
         let intentionIdLock = new Object()
+        let solvingLock = new Object()
 
         //Make a new ID meant for an intention
         let generateIntentionId = lock intentionIdLock  (fun () -> intentionIdCounter <- intentionIdCounter + 1L
@@ -97,7 +99,7 @@
         
         
 
-        let intentionsWithSolutions =
+        let intentionsWithSolutions () =
             let tupToTrip ((a,b),c) = (a,b,c) 
             lock solutionsLock (fun () ->
                 lock intentionLock (fun () ->
@@ -128,7 +130,7 @@
                                                                             true)
             if shouldPromote then
                 lock runningSolutionLock (fun () ->
-                    let possibePlans = Map.toList intentionsWithSolutions
+                    let possibePlans = Map.toList (intentionsWithSolutions())
                     match possibePlans with
                     | [] -> ()
                     | plans ->
@@ -140,7 +142,39 @@
             else
                 ()
         
-        
+        let solveAsync id intent (planner:Planner<_,_,_,_>) state =
+            let async = 
+                async
+                    {
+                        let plan = planner.FormulatePlan (state, intent)
+                        match plan with
+                        | Some p -> 
+                            lock solutionsLock (fun () -> solutions <- Map.add id p solutions)
+                            lock solutionOnHoldLock (fun () -> solutionsOnHold <- List.filter ((<>) id) solutionsOnHold)
+                            lock solvingLock (fun () -> solving <- Set.remove id solving)
+                            attemptPromote()
+                            ()
+                        | _ -> ()
+                    }
+            Async.Start async 
+
+        let beginSolving planner state =
+            lock intentionLock (fun () ->
+                let unsolved =  List.map (fun (id,_) -> id) <| Map.toList intentions
+                                |> List.filter (fun id -> not (lock solutionsLock (fun () -> solutions.ContainsKey(id))) 
+                                                          //|| (lock solutionOnHoldLock (fun () -> List.exists ((<>) id) solutionsOnHold))
+                                                          )
+                let solveThese = lock solvingLock (fun () -> 
+                                    let solve = Set.difference (Set.ofList unsolved) solving
+                                    solving <- Set.union solve solving
+                                    solve)
+                Set.iter (fun id -> 
+                    let (_,intent) = intentions.[id]
+                    solveAsync id intent planner state
+                    ()) solveThese
+            )
+
+
         member private this._actuatorReady () =
             let comp =
                     async
@@ -156,6 +190,7 @@
                         {
                             lock stateLock (fun () ->  state <- this.AnalyzePercept(percepts,state) )   
                             buildIntentions this.FilterIntention state
+                            beginSolving planner state 
                             attemptPromote()
                         }
             
