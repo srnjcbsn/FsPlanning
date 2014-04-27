@@ -93,7 +93,7 @@
             if not finished then
                 let finalplan = planner.RepairPlan(s, intention, plan)    
                 match finalplan with
-                | Some p -> Some <| planner.NextAction (s, intention, p)
+                | Some p -> planner.NextAction (s, intention, p)
                 | _ -> None
             else
                 None
