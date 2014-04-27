@@ -36,4 +36,4 @@ module Planning =
         //abstract member PlanWorking : 'TState * 'TGoal * 'TSolution -> bool
         abstract member RepairPlan : 'TState * 'TGoal * 'TSolution -> 'TSolution option
         abstract member SolutionFinished : 'TState * 'TGoal * 'TSolution -> bool
-        abstract member NextAction : 'TState * 'TGoal * 'TSolution -> 'TAction * 'TSolution
+        abstract member NextAction : 'TState * 'TGoal * 'TSolution -> ('TAction * 'TSolution) option
