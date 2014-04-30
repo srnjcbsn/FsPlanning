@@ -1,7 +1,8 @@
 ﻿namespace FsPlanning.Agent
 module Planning = 
     
-    open FsPlanning.Searching
+    open FsPlanning.Search.Problem
+    open FsPlanning.Search.Astar
 
     type IntentionFilter =
         | Conflictive

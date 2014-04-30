@@ -41,7 +41,9 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="PriorityQueue.fs" />
-    <Compile Include="Searching.fs" />
+    <Compile Include="Search\Problem.fs" />
+    <Compile Include="Search\Astar.fs" />
+    <Compile Include="Search\Bidirectional.fs" />
     <Compile Include="Agent\Planning.fs" />
     <Compile Include="Agent\Sensor.fs" />
     <Compile Include="Agent\Actuator.fs" />

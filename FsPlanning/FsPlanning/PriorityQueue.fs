@@ -2,7 +2,7 @@
     open System
     open System.Collections.Generic
 
-    type PriorityQueue<'TState,'TPriority when 'TState : comparison and 'TPriority : comparison> 
+    type PriorityQueue<'TPriority,'TState when 'TState : comparison and 'TPriority : comparison> 
         (sortedSet : Set<'TPriority * 'TState>, stateToCostMap : Map<'TState, 'TPriority>) =
         class
             let SortedSet = sortedSet
@@ -20,8 +20,9 @@
             member this.PriorityOf (state) =
                 Map.tryFind state StateToCostMap
 
-            member this.Exists (state) =
-                Set.contains state SortedSet
+            member this.Exists (state) =   
+                Map.containsKey state StateToCostMap
+                //Set.contains (prio,state) SortedSet
 
             new (elems : seq<'TPriority * 'TState>) =
                 let SSet = Set.ofSeq elems
