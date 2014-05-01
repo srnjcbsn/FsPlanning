@@ -8,6 +8,11 @@ module Problem =
         ; Result       : 's -> 'a -> 's
         ; StepCost     : 's -> 'a -> int
         }
+    type RegressionProblem<'s, 'a> when 'a : equality =
+        { FinalState        : 's
+        ; PrecedingActions  : 's -> 'a list
+        ; Motive            : 's -> 'a -> 's list
+        }
 
     [<CustomEquality; CustomComparison>]
     type SearchNode<'s, 'a> when 'a : equality and 's : equality and 's : comparison =
@@ -50,3 +55,34 @@ module Problem =
 
     let childNodes problem node = List.map (childNode problem node) <| problem.Actions node.State
 
+    let solutionCost (problem : Problem<_,_> ) list =
+        fst <| List.fold (fun (cost,state) action -> (cost + problem.StepCost state action,problem.Result state action)) (0,problem.InitialState) list 
+
+    let rec unRavelPath node = 
+        match node.Parent with
+        | Some node' -> (unRavelPath node') @ [node.Action.Value]
+        | None -> []
+
+    let solve (solver : Problem<'s,'a> -> SearchNode<'s,'a> option) problem =
+        match solver problem with
+        | Some solution -> Some <| { Path = unRavelPath solution; Cost = solution.PathCost }
+        | None -> None
+
+    let finalNode problem =
+        { State    = problem.FinalState
+        ; Parent   = None
+        ; Action   = None
+        ; PathCost = 0
+        }
+
+    let childRegessionNode problem (node : SearchNode<_,_>) action state = 
+        { State  = state
+        ; Parent = Some node
+        ; Action = Some action
+        ; PathCost = node.PathCost + problem.StepCost state action
+        }
+
+    let childRegessionNodes problem ( regproblem : RegressionProblem<'s, 'a>) ( node  : SearchNode<'s,'a> ) = 
+        let actions = regproblem.PrecedingActions node.State
+        let statesWithMotives = List.collect (fun action -> List.map (fun s -> (action,s) ) <| regproblem.Motive node.State action) actions
+        List.map (fun (motive,state) -> childRegessionNode problem node motive state) statesWithMotives

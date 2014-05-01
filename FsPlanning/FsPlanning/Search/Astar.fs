@@ -51,10 +51,7 @@ module Astar =
         let node = initialNode problem
         aStar' [node] Set.empty
 
-    let rec unRavelPath node = 
-        match node.Parent with
-        | Some node' -> (unRavelPath node') @ [node.Action.Value]
-        | None -> []
+   
 
     let solve (solver : Problem<'s,'a> -> SearchNode<'s,'a> option) problem =
         match solver problem with
