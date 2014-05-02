@@ -30,7 +30,7 @@ open FsPlanning.Search
         let makeRegProblem finish graph =
             { FinalState        = Pos finish
             ; PrecedingActions  = fun (Pos node) -> [Move node]
-            ; Motive            = fun (Pos node) a -> List.map (fun n -> Pos n) <| SimpleGraph.neighbours node graph
+            ; Motives           = fun (Pos node) a -> List.map (fun n -> Pos n) <| SimpleGraph.neighbours node graph
             }
 
         [<Test>]
@@ -53,34 +53,6 @@ open FsPlanning.Search
             
             let solution = Bidirectional.solve problem regProblem
             Assert.AreEqual (Some <| List.map (fun i -> Move i) [2;3;4;9;10;11;12],solution)
-
-    //This case cannot occur
-//        [<Test>]
-//        member this.Solve_SolvableGraphFromBackOnly_SolvedProblem () =
-//            let start = 1
-//            let finish = 3
-//            let edges = 
-//                [   (1,2)
-//                ;   (2,3)
-//                ]
-//                    
-//            let graph = SimpleGraph.ofList edges
-//            let problem =
-//                { InitialState  = Pos start
-//                ; GoalTest      = fun s -> s = Pos finish
-//                ; Actions       = fun (Pos node) -> 
-//                                    if node = 1 then
-//                                         [Move 2]
-//                                    else
-//                                        [Move (100+node)]
-//                ; Result        = fun s (Move node) -> Pos node 
-//                ; StepCost      = fun s a -> 1
-//                }
-//            let regProblem = makeRegProblem finish graph
-//                
-//            let solution = Bidirectional.solve problem regProblem
-//
-//            Assert.AreEqual (Some <| List.map (fun i -> Move i) [2;3],solution)
 
         [<Test>]
         member this.Solve_UnSolvableGraph_NoSolutionButTerminated () =

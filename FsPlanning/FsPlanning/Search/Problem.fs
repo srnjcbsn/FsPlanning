@@ -11,7 +11,7 @@ module Problem =
     type RegressionProblem<'s, 'a> when 'a : equality =
         { FinalState        : 's
         ; PrecedingActions  : 's -> 'a list
-        ; Motive            : 's -> 'a -> 's list
+        ; Motives           : 's -> 'a -> 's list
         }
 
     [<CustomEquality; CustomComparison>]
@@ -84,5 +84,5 @@ module Problem =
 
     let childRegessionNodes problem ( regproblem : RegressionProblem<'s, 'a>) ( node  : SearchNode<'s,'a> ) = 
         let actions = regproblem.PrecedingActions node.State
-        let statesWithMotives = List.collect (fun action -> List.map (fun s -> (action,s) ) <| regproblem.Motive node.State action) actions
+        let statesWithMotives = List.collect (fun action -> List.map (fun s -> (action,s) ) <| regproblem.Motives node.State action) actions
         List.map (fun (motive,state) -> childRegessionNode problem node motive state) statesWithMotives
