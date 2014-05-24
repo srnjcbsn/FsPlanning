@@ -33,25 +33,28 @@
         //let solvingLock = new Object()
 
         //Make a new ID meant for an intention
-        let generateIntentionId = lock intentionIdLock  (fun () -> intentionIdCounter <- intentionIdCounter + 1L
-                                                                   intentionIdCounter)
+        let generateIntentionId () = lock intentionIdLock  (fun () -> intentionIdCounter <- intentionIdCounter + 1L
+                                                                      intentionIdCounter)
         //Takes an intention and checks if it conflicts with any of the other intentions 
         //if it has higher desire than the other intentions then 
         let updateIntentions intenfilter (currentInts,curConflicts) (prio,intention) =
+            //printf "%A Intentions: %A\n" (List.length <| Map.toList intentions) (List.map snd <| Map.toList intentions)
             let (conflics,harmonic) = Map.partition (fun  _ (_,i,_) ->  
                                                     let filter = intenfilter (i,intention)
                                                     match filter with
                                                     | Conflictive -> true
                                                     | Harmonic -> false
                                                     ) currentInts
-            let highestPrio = Map.forall (fun _ (cp,_,_) -> prio > cp) conflics
+            let highestPrio = Map.forall (fun _ (cp,_,_) -> prio < cp) conflics
             
             let mappedConflicts = Map.ofSeq << Seq.map (fun (_,(desire,intent,_)) -> (desire,intent)) <| Map.toSeq conflics
             if highestPrio then
-                let id = generateIntentionId
+                let id = generateIntentionId()
                 let token = new CancellationTokenSource()
                 Map.iter (fun _ (_,_,t:CancellationTokenSource) -> t.Cancel()) conflics
-                (Map.add id (prio,intention,token) harmonic,Map.ofList ((Map.toList mappedConflicts)@(Map.toList curConflicts)))
+                let newIntentions = Map.add id (prio,intention,token) harmonic
+                let newConflicts = Map.ofList ((Map.toList mappedConflicts)@(Map.toList curConflicts))
+                (newIntentions,newConflicts)
             else
                 (currentInts,Map.add prio intention curConflicts)
 
@@ -93,7 +96,7 @@
             if not finished then
                 let finalplan = planner.RepairPlan(s, intention, plan)    
                 match finalplan with
-                | Some p -> Some <| planner.NextAction (s, intention, p)
+                | Some p -> planner.NextAction (s, intention, p)
                 | _ -> None
             else
                 None
@@ -102,13 +105,20 @@
 
         let updateAndStartIntentions intentionExecuter intentionFilter currentIntentions updatedIntentions =
               let (_,difIntents) = Map.partition (fun id _ -> Map.containsKey id currentIntentions) updatedIntentions
-              intentions <- updatedIntentions
+              lock intentionLock (fun () -> intentions <- updatedIntentions)
+              match Map.toList difIntents with
+              | (_,(prio,intent,_))::_ -> ()
+                //printf "%A" intent
+              | _ -> ()
               Map.iter (fun id _ -> Async.Start <| intentionExecuter intentionFilter id) difIntents
+
         
         let rec intentionHandler filter id =
             async
                 {
+                    
                     let pintent = lock intentionLock (fun () -> Map.tryFind id intentions)
+                    
                     match pintent with
                     | Some (_,intent,token:CancellationTokenSource) -> 
                         let s = lock stateLock (fun () -> state)
@@ -151,10 +161,15 @@
             let newCons = lock intentionLock (fun () -> 
                     let (_,newIntention) = travelDesires 0 state desires
                     let parallelCalc = Array.Parallel.choose ( fun (p,ai) ->    
-                                                                                let calcIntention = ai state
-                                                                                match calcIntention with
-                                                                                | Some i -> Some (p,i)
-                                                                                | _ -> None )
+                                                                                try
+                                                                                    let calcIntention = ai state
+                                                                                    match calcIntention with
+                                                                                    | Some i -> Some (p,i)
+                                                                                    | _ -> None
+                                                                                with
+                                                                                | e ->  printf "%A" e
+                                                                                        None
+                                                              )
                     let newActualIntentions = List.ofArray ( parallelCalc (List.toArray newIntention) )
                     let currentIntentions = lock intentionLock (fun () -> intentions)
                     let (updatedIntentions,newConflicts) = List.fold (updateIntentions intentionFilter) (currentIntentions,Map.empty) newActualIntentions
@@ -185,6 +200,7 @@
                         {
                             lock stateLock (fun () ->  state <- this.AnalyzePercept(percepts,state) )   
                             buildIntentions this.FilterIntention state
+
                             //beginSolving planner state 
                             //attemptPromote()
                         }
