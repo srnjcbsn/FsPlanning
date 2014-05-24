@@ -195,18 +195,8 @@
 
         member private this._newPercepts (sensor:Sensor<'TPercept>) = 
             let percepts = sensor.ReadPercepts()
-            let comp =  
-                    async
-                        {
-                            lock stateLock (fun () ->  state <- this.AnalyzePercept(percepts,state) )   
-                            buildIntentions this.FilterIntention state
-
-                            //beginSolving planner state 
-                            //attemptPromote()
-                        }
-            
-            Async.Start comp
-            ()
+            lock stateLock (fun () ->  state <- this.AnalyzePercept(percepts,state) )   
+            buildIntentions this.FilterIntention state
         
         abstract member FilterIntention : 'TIntention*'TIntention -> IntentionFilter
         abstract member AnalyzePercept : 'TPercept list*'TState -> 'TState
