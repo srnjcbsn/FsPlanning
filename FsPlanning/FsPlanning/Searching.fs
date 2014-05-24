@@ -88,9 +88,11 @@ module Searching =
             match pop frontier with
             | None -> None
             | Some (bestNode, frontier') -> 
+                
                 let explored = Set.add bestNode.State explored
-                let frontier'' = List.fold (updateFrontier explored) frontier' <| childNodes problem bestNode
-
+                let children = childNodes problem bestNode
+                let frontier'' = List.fold (updateFrontier explored) frontier' <| children
+                
                 match problem.GoalTest bestNode.State with
                 | true  -> Some bestNode
                 | false -> aStar' frontier'' explored

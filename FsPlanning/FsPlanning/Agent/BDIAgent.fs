@@ -101,15 +101,11 @@
             else
                 None
         let updateConflicts newCons =
-            lock conflictLock (fun () -> conflicts <- Map.fold (fun cons desire inte -> Map.add desire inte cons) conflicts newCons )
+            lock conflictLock (fun () -> conflicts <-  newCons )//Map.fold (fun cons desire inte -> Map.add desire inte cons) conflicts newCons )
 
         let updateAndStartIntentions intentionExecuter intentionFilter currentIntentions updatedIntentions =
               let (_,difIntents) = Map.partition (fun id _ -> Map.containsKey id currentIntentions) updatedIntentions
               lock intentionLock (fun () -> intentions <- updatedIntentions)
-              match Map.toList difIntents with
-              | (_,(prio,intent,_))::_ -> ()
-                //printf "%A" intent
-              | _ -> ()
               Map.iter (fun id _ -> Async.Start <| intentionExecuter intentionFilter id) difIntents
 
         
@@ -118,7 +114,7 @@
                 {
                     
                     let pintent = lock intentionLock (fun () -> Map.tryFind id intentions)
-                    
+                    //printf "Beginning: %A" pintent
                     match pintent with
                     | Some (_,intent,token:CancellationTokenSource) -> 
                         let s = lock stateLock (fun () -> state)
@@ -143,14 +139,18 @@
                             
                         | None -> ()
 
-                        lock intentionLock (fun () ->   
-                                                        intentions <- Map.remove id intentions
-                                                        lock conflicts (fun () ->
-                                                            let (newIntents,newCons) = List.fold (updateIntentions filter) (intentions,Map.empty) <| Map.toList conflicts
-                                                            updateAndStartIntentions intentionHandler filter intentions newIntents
-                                                            updateConflicts newCons 
-                                                            ()            
-                                                            ))
+                        lock intentionLock 
+                                (fun () ->   
+                                    intentions <- Map.remove id intentions
+                                    lock conflictLock
+                                        (fun () ->
+                                            let a = pintent
+                                            let (newIntents,newCons) = List.fold (updateIntentions filter) (intentions,Map.empty) <| Map.toList conflicts
+                                            updateAndStartIntentions intentionHandler filter intentions newIntents
+                                            updateConflicts newCons 
+                                            ()            
+                                        )
+                                )
 
                     | _ -> ()
                 }
@@ -167,7 +167,7 @@
                                                                                     | Some i -> Some (p,i)
                                                                                     | _ -> None
                                                                                 with
-                                                                                | e ->  printf "%A" e
+                                                                                | e ->  printf "Intention Function crash: \n%A \n%A" ai e
                                                                                         None
                                                               )
                     let newActualIntentions = List.ofArray ( parallelCalc (List.toArray newIntention) )
