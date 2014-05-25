@@ -38,9 +38,10 @@ module Astar =
             //lock flock (fun () -> printfn "Frontier size: %A" (List.length frontier))
             let inExplored = Set.contains node.State explored
             let priority = PriorityQueue.priorityOf node frontier
+            let newPriority = problem.Heuristic node.State node.PathCost
             match (inExplored, priority) with
-            | (false, None)                      -> PriorityQueue.add node.PathCost node frontier
-            | (_, Some p) when p > node.PathCost -> PriorityQueue.add node.PathCost node frontier
+            | (false, None)                      -> PriorityQueue.add newPriority node frontier
+            | (_, Some p) when p > newPriority   -> PriorityQueue.add newPriority node frontier
             | (_, _)                             -> frontier 
 
         let rec aStar' frontier explored =
@@ -57,11 +58,12 @@ module Astar =
                 | false -> aStar' frontier'' explored
         
         let node = initialNode problem
-        aStar' (PriorityQueue [(node.PathCost,node)]) Set.empty
+        let g = problem.Heuristic node.State node.PathCost 
+        aStar' (PriorityQueue [(g, node)]) Set.empty
 
    
 
-    let solve (solver : Problem<'s,'a> -> SearchNode<'s,'a> option) problem =
+    let solve (solver : Problem<'s,'a,'p> -> SearchNode<'s,'a> option) problem =
         match solver problem with
         | Some solution -> Some <| { Path = unRavelPath solution; Cost = solution.PathCost }
         | None -> None
