@@ -84,7 +84,7 @@ module Bidirectional =
     let combineNodePath proNode regNode = (unRavelPath proNode)@(List.rev <| unRavelPath regNode)
 
     //Solves the problem of finding a list of actions that going from the initial state will satisfy the goalTest
-    let solve ( problem : Problem<'s, 'a>) ( regproblem : RegressionProblem<'s, 'a>)  = 
+    let solve ( problem : Problem<'s, 'a, 'p>) ( regproblem : RegressionProblem<'s, 'a>)  = 
         let initNode = initialNode problem
         let finalNode = finalNode regproblem
         if problem.GoalTest initNode.State then
