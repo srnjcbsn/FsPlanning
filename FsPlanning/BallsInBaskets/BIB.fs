@@ -1,7 +1,8 @@
 ﻿namespace BallsInBaskets
 module BIB =
     
-    open FsPlanning.Searching
+    open FsPlanning.Search.Problem
+    open FsPlanning.Search.Astar
 
     type Ball = int
     type Basket = int

@@ -7,7 +7,8 @@ module BallsInBaskets.Main
 
 open System
 open BIB
-open FsPlanning.Searching
+open FsPlanning.Search.Problem
+open FsPlanning.Search.Astar
 
 let someFunction x y = x + y
 
