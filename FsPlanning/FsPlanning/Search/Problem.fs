@@ -1,13 +1,15 @@
 ﻿namespace FsPlanning.Search
 module Problem =
 
-    type Problem<'s, 'a> when 'a : equality =
+    type Problem<'s, 'a, 'p> when 'a : equality and 'p : comparison =
         { InitialState : 's
         ; GoalTest     : 's -> bool
         ; Actions      : 's -> 'a list
         ; Result       : 's -> 'a -> 's
         ; StepCost     : 's -> 'a -> int
+        ; Heuristic    : 's -> int -> 'p
         }
+
     type RegressionProblem<'s, 'a> when 'a : equality =
         { FinalState        : 's
         ; PrecedingActions  : 's -> 'a list
@@ -55,7 +57,7 @@ module Problem =
 
     let childNodes problem node = List.map (childNode problem node) <| problem.Actions node.State
 
-    let solutionCost (problem : Problem<_,_> ) list =
+    let solutionCost (problem : Problem<_,_,_> ) list =
         fst <| List.fold (fun (cost,state) action -> (cost + problem.StepCost state action,problem.Result state action)) (0,problem.InitialState) list 
 
     let rec unRavelPath node = 
@@ -63,7 +65,7 @@ module Problem =
         | Some node' -> (unRavelPath node') @ [node.Action.Value]
         | None -> []
 
-    let solve (solver : Problem<'s,'a> -> SearchNode<'s,'a> option) problem =
+    let solve (solver : Problem<'s,'a,'p> -> SearchNode<'s,'a> option) problem =
         match solver problem with
         | Some solution -> Some <| { Path = unRavelPath solution; Cost = solution.PathCost }
         | None -> None
