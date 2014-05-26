@@ -47,8 +47,8 @@ module Astar =
         let rec aStar' frontier explored =
             match PriorityQueue.tryPop frontier with
             | None -> None
-            | Some ((_,bestNode), frontier') -> 
-                
+            | Some ((_, bestNode), frontier') -> 
+
                 let explored = Set.add bestNode.State explored
                 let children = childNodes problem bestNode
                 let frontier'' = List.fold (updateFrontier explored) frontier' <| children
@@ -61,10 +61,14 @@ module Astar =
         let g = problem.Heuristic node.State node.PathCost 
         aStar' (PriorityQueue [(g, node)]) Set.empty
 
-   
+    let solveSearchNodePath (solver : Problem<'s,'a,'p> -> SearchNode<'s,'a> option) problem =
+        match solver problem with
+        | Some solution -> Some <| {Path = unRavelPath solution; Cost = solution.PathCost}
+        | None -> None
 
     let solve (solver : Problem<'s,'a,'p> -> SearchNode<'s,'a> option) problem =
-        match solver problem with
-        | Some solution -> Some <| { Path = unRavelPath solution; Cost = solution.PathCost }
+        let solved = solveSearchNodePath solver problem
+        match solved with
+        | Some {Path = path; Cost = cost} -> Some {Path = List.map (fun node -> node.Action.Value) path; Cost = cost}
         | None -> None
 

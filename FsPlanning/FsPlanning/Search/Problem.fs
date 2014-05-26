@@ -62,7 +62,7 @@ module Problem =
 
     let rec unRavelPath node = 
         match node.Parent with
-        | Some node' -> (unRavelPath node') @ [node.Action.Value]
+        | Some node' -> (unRavelPath node') @ [node]
         | None -> []
 
     let solve (solver : Problem<'s,'a,'p> -> SearchNode<'s,'a> option) problem =
