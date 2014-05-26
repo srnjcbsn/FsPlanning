@@ -118,7 +118,9 @@
                     match pintent with
                     | Some (_,intent,token:CancellationTokenSource) -> 
                         let s = lock stateLock (fun () -> state)
-                        let planAttempt = planner.FormulatePlan (s, intent)
+                        let planAttempt =  try planner.FormulatePlan (s, intent) with
+                                           | exn -> printf "Intention exception: %A" intent
+                                                    None
                         match planAttempt with
                         | Some plan ->
                             let curplan = ref plan
