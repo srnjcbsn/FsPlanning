@@ -197,13 +197,21 @@
 
         member private this._newPercepts (sensor:Sensor<'TPercept>) = 
             let percepts = sensor.ReadPercepts()
-            lock stateLock (fun () ->  state <- this.AnalyzePercept(percepts,state) )   
+            let newState = lock stateLock (fun () ->  state <- this.AnalyzePercept(percepts,state)
+                                                      state )
+            let optimize = async
+                                {
+                                    let optState  = this.OptimizeState(newState)
+                                    lock stateLock (fun () ->  state <- this.ImplementOptimizedState(state,optState))
+                                    ()
+                                }
+            Async.Start(optimize)
             buildIntentions this.FilterIntention state
         
         abstract member FilterIntention : 'TIntention*'TIntention -> IntentionFilter
         abstract member AnalyzePercept : 'TPercept list*'TState -> 'TState
-        
-       
+        abstract member OptimizeState  : 'TState -> 'TState
+        abstract member ImplementOptimizedState : 'TState*'TState -> 'TState
            
         member this.AddSensor (sensor:Sensor<'TPercept>) = 
             sensors <- sensor :: sensors
