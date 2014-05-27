@@ -41,7 +41,9 @@ module Astar =
             let newPriority = problem.Heuristic node.State node.PathCost
             match (inExplored, priority) with
             | (false, None)                      -> PriorityQueue.add newPriority node frontier
-            | (_, Some p) when p > newPriority   -> PriorityQueue.add newPriority node frontier
+            | (_, Some p) when p > newPriority   -> 
+                PriorityQueue.remove p node frontier
+                |> PriorityQueue.add newPriority node
             | (_, _)                             -> frontier 
 
         let rec aStar' frontier explored =
