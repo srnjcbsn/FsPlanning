@@ -10,6 +10,9 @@
 
             member this.Add (cost, state) =
                 new PriorityQueue<_,_> (Set.add (cost, state) SortedSet, Map.add state cost StateToCostMap)
+
+            member this.Remove (cost, state) =
+                new PriorityQueue<_,_> (Set.remove (cost, state) SortedSet, Map.remove state StateToCostMap)
             
             member this.TryPop () =
                 if SortedSet.IsEmpty then
@@ -45,6 +48,8 @@
     module PriorityQueue = 
 
         let add priority state (pq : PriorityQueue<_,_>) = pq.Add (priority, state)
+
+        let remove priority state (pq : PriorityQueue<_,_>) = pq.Remove (priority, state)
 
         let pop (pq : PriorityQueue<_,_>) = pq.Pop ()
 
