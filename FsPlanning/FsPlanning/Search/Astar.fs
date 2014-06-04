@@ -2,37 +2,10 @@
 module Astar =
     open System
     open FsPlanning
-//    open PriorityQueue
-//
-//    type PQ<'a,'b> when 'a : comparison and 'b : comparison = PriorityQueue<'a,'b>
-
-//    type Action<'TState> = 'TState -> 'TState * int
-//        interface IComparable<Action<'TState>> with
-//
     open Problem
-
-    //type Frontier<'s,'a> when 'a : equality and 's : comparison = SearchNode<'s,'a> list
+    open System
     
-
-//    let nodeWithState state frontier = List.tryFind (fun node -> node.State = state) frontier
-//
-//    let priorityOf state frontier = 
-//        match (nodeWithState state frontier) with
-//        | Some node -> Some node.PathCost
-//        | None -> None
-//
-//    let insert node frontier = 
-//        let prunedFrontier = List.filter (fun lnode -> lnode.State <> node.State) frontier
-//        List.sortBy (fun node -> node.PathCost) (node :: prunedFrontier)
-//    
-//    let pop frontier = 
-//        match frontier with
-//        | h :: t -> Some (h, t)
-//        | _ -> None
-
-    //let flock = new Object();
-    
-    let aStar problem =
+    let aStar problem breakTest =
 
         let updateFrontier explored frontier node = 
             //lock flock (fun () -> printfn "Frontier size: %A" (List.length frontier))
@@ -54,21 +27,20 @@ module Astar =
                 let explored = Set.add bestNode.State explored
                 let children = childNodes problem bestNode
                 let frontier'' = List.fold (updateFrontier explored) frontier' <| children
-                
-                match problem.GoalTest bestNode.State with
-                | true  -> Some bestNode
-                | false -> aStar' frontier'' explored
+
+                match (problem.GoalTest bestNode.State, breakTest()) with
+                | (false, false) -> aStar' frontier'' explored
+                | _ -> Some bestNode
         
         let node = initialNode problem
         let g = problem.Heuristic node.State node.PathCost 
         aStar' (PriorityQueue [(g, node)]) Set.empty
 
-    let solveSearchNodePath (solver : Problem<'s,'a,'p> -> SearchNode<'s,'a> option) problem =
-        match solver problem with
+    let solveSearchNodePath (solver : Problem<'s,'a,'p> -> (unit -> bool) -> SearchNode<'s,'a> option) problem breakTest =
+        match solver problem breakTest with
         | Some solution -> Some <| {Path = unRavelPath solution; Cost = solution.PathCost}
         | None -> None
 
-      
     let aStarAllPaths problem =
         let updateFrontier explored frontier node = 
             let inExplored = Set.contains node.State explored
@@ -95,9 +67,8 @@ module Astar =
     let allStatesWithCost (nodes : SearchNode<_,_> list) =
         List.map (fun n -> (n.PathCost,n.State) ) nodes
 
-    let solve (solver : Problem<'s,'a,'p> -> SearchNode<'s,'a> option) problem =
-        let solved = solveSearchNodePath solver problem
+    let solve (solver : Problem<'s,'a,'p> -> (unit -> bool) -> SearchNode<'s,'a> option) problem breakTest =
+        let solved = solveSearchNodePath solver problem breakTest
         match solved with
         | Some {Path = path; Cost = cost} -> Some {Path = List.map (fun node -> node.Action.Value) path; Cost = cost}
         | None -> None
-

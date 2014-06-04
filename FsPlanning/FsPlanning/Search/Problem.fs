@@ -1,6 +1,6 @@
 ﻿namespace FsPlanning.Search
 module Problem =
-
+    
     type Problem<'s, 'a, 'p> when 'a : equality and 'p : comparison =
         { InitialState : 's
         ; GoalTest     : 's -> bool
