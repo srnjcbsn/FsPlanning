@@ -63,9 +63,14 @@ module Astar =
         let node = initialNode problem
         let g = problem.Heuristic node.State node.PathCost 
         aStar' (PriorityQueue [(g, node)]) Set.empty List.empty
+    
+    let rec pathlength  depth (node : SearchNode<_,_>) = 
+        match node.Parent with
+        | Some p -> pathlength (depth+1) p
+        | None -> depth 
 
     let allStatesWithCost (nodes : SearchNode<_,_> list) =
-        List.map (fun n -> (n.PathCost,n.State) ) nodes
+        List.map (fun n -> ((n.PathCost,(pathlength 0 n)),n.State) ) nodes
 
     let solve (solver : Problem<'s,'a,'p> -> (unit -> bool) -> SearchNode<'s,'a> option) problem breakTest =
         let solved = solveSearchNodePath solver problem breakTest

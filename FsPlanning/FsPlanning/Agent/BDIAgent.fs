@@ -101,11 +101,14 @@
             let s = lock stateLock (fun () -> state)
             let finished = planner.SolutionFinished (s, intention, plan)
             if not finished then
-                let finalplan = planner.RepairPlan(s, intention, plan)    
+                let newState = lock stateLock (fun () -> state <- planner.UpdateStateBeforePlanning(state,intention)
+                                                         state)
+                let finalplan = planner.RepairPlan(newState, intention, plan)    
                 match finalplan with
-                | Some p -> planner.NextAction (s, intention, p)
+                | Some p -> planner.NextAction (newState, intention, p)
                 | _ -> None
             else
+                lock stateLock (fun () -> state <- planner.UpdateStateOnSolutionFinished(state,intention,plan))
                 None
         let updateConflicts newCons =
             lock conflictLock (fun () -> conflicts <-  newCons )//Map.fold (fun cons desire inte -> Map.add desire inte cons) conflicts newCons )
@@ -124,7 +127,8 @@
                     //printf "Beginning: %A" pintent
                     match pintent with
                     | Some (_,intent,token:CancellationTokenSource) -> 
-                        let s = lock stateLock (fun () -> state)
+                        let s = lock stateLock (fun () -> state <- planner.UpdateStateBeforePlanning(state,intent)
+                                                          state)
                         let planAttempt =  try planner.FormulatePlan (s, intent) with
                                            | exn -> printf "Intention exception: %A" intent
                                                     None

@@ -38,3 +38,5 @@ module Planning =
         abstract member RepairPlan : 'TState * 'TGoal * 'TSolution -> 'TSolution option
         abstract member SolutionFinished : 'TState * 'TGoal * 'TSolution -> bool
         abstract member NextAction : 'TState * 'TGoal * 'TSolution -> ('TAction * 'TSolution) option
+        abstract member UpdateStateBeforePlanning : 'TState * 'TGoal -> 'TState
+        abstract member UpdateStateOnSolutionFinished : 'TState * 'TGoal * 'TSolution -> 'TState
