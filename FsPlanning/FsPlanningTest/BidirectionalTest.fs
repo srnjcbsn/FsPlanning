@@ -38,13 +38,13 @@ open FsPlanning.Search
             let start = 1
             let finish = 12
             let edges = 
-                [   (1,2); (1,5); (5,6); (6,7)
+                [   (2,1); (1,5); (5,6); (6,7)
                 ;   (2,3)
-                ;   (3,4)
+                ;   (4,3)
                 ;   (4,9)
-                ;   (9,10)
+                ;   (10,9)
                 ;   (10,11)
-                ;   (11,12)
+                ;   (12,11)
                 ]
                     
             let graph = SimpleGraph.ofList edges
@@ -59,12 +59,13 @@ open FsPlanning.Search
             let start = 1
             let finish = 12
             let edges = 
-                [   (1,2); (1,5); (5,6); (6,7)
+                [   (2,1); (1,5); (5,6); (6,7)
                 ;   (2,3)
-                ;   (3,4)
-                ;   (9,10)
+                ;   (4,3)
+
+                ;   (10,9)
                 ;   (10,11)
-                ;   (11,12)
+                ;   (12,11)
                 ]
                     
             let graph = SimpleGraph.ofList edges
