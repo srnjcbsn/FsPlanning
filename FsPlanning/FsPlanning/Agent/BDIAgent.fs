@@ -130,7 +130,7 @@
                         let s = lock stateLock (fun () -> state <- planner.UpdateStateBeforePlanning(state,intent)
                                                           state)
                         let planAttempt =  try planner.FormulatePlan (s, intent) with
-                                           | exn -> printf "Intention exception: %A" intent
+                                           | exn -> printfn "Exception encountered in planning: %A \n %A at %A" intent exn.Message exn.TargetSite
                                                     None
                         match planAttempt with
                         | Some plan ->
