@@ -39,9 +39,9 @@
         //if it has higher desire than the other intentions then 
         let updateIntentions (intentionEqual,intenfilter) (currentInts,curConflicts) (prio,intention) =
             //printf "%A Intentions: %A\n" (List.length <| Map.toList intentions) (List.map snd <| Map.toList intentions)
-            let allcurrentInts = List.map (fun (_,(_,i,_)) -> i) <| Map.toList currentInts
+            //let allcurrentInts = List.map (fun (_,(_,i,_)) -> i) <| Map.toList currentInts
             let allcurrentCons = List.map (fun (_,i) -> i) <| Map.toList curConflicts
-            let alreadyExists = List.exists (fun i -> intentionEqual (i, intention)) <| allcurrentCons@allcurrentInts
+            let alreadyExists = List.exists (fun i -> intentionEqual (i, intention)) <| allcurrentCons
             if alreadyExists then
                 (currentInts,curConflicts)
             else
@@ -119,7 +119,7 @@
               Map.iter (fun id _ -> Async.Start <| intentionExecuter id) difIntents
 
         
-        let rec intentionHandler intentionBuilder id =
+        let rec intentionHandler filter id =
             async
                 {
                     
@@ -153,22 +153,22 @@
                         | None -> ()
                         lock intentionLock (fun () -> intentions <- Map.remove id intentions)
                         let newState = lock stateLock (fun () -> state)
-                        intentionBuilder newState
-//                        lock intentionLock 
-//                                (fun () ->   
-//                                    
-//                                    let (newIntents,newCons) = List.fold (updateIntentions filter) (intentions,Map.empty) <| Map.toList conflicts
-//                                    updateAndStartIntentions intentionHandler filter intentions newIntents
-//                                    updateConflicts newCons 
-//                                    ()
-//                                )
+                        //intentionBuilder newState
+                        lock intentionLock 
+                                (fun () ->   
+                                    
+                                    let (newIntents,newCons) = List.fold (updateIntentions filter) (intentions,Map.empty) <| Map.toList conflicts
+                                    updateAndStartIntentions (intentionHandler filter) filter intentions newIntents
+                                    updateConflicts newCons 
+                                    ()
+                                )
 
                     | _ -> ()
                 }
         
         
         
-        let rec buildIntentions intentionFilter state =
+        let buildIntentions intentionFilter state =
             let newCons = lock intentionLock (fun () -> 
                     let (_,newIntention) = travelDesires 0 state desires
                     let parallelCalc = Array.Parallel.choose ( fun (p,ai) ->    
@@ -187,8 +187,8 @@
 //                    let (_,difIntents) = Map.partition (fun id _ -> Map.containsKey id currentIntentions) updatedIntentions
 //                    intentions <- updatedIntentions
 //                    Map.iter (fun id _ -> Async.Start <| intentionHandler intentionFilter id) difIntents
-                    let builder = buildIntentions intentionFilter
-                    let handler = intentionHandler builder
+                    //let builder = buildIntentions intentionFilter
+                    let handler = intentionHandler intentionFilter
                     updateAndStartIntentions handler intentionFilter currentIntentions updatedIntentions
                     newConflicts
                 )
