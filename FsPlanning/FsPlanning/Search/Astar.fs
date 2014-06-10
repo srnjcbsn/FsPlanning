@@ -27,8 +27,8 @@ module Astar =
                 let explored = Set.add bestNode.State explored
                 let children = childNodes problem bestNode
                 let frontier'' = List.fold (updateFrontier explored) frontier' <| children
-
-                match (problem.GoalTest bestNode.State, breakTest()) with
+                let breaktest = breakTest()
+                match (problem.GoalTest bestNode.State, breaktest) with
                 | (false, false) -> aStar' frontier'' explored
                 | _ -> Some bestNode
         
