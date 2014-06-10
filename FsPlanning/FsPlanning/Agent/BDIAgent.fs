@@ -27,7 +27,7 @@
         //let solutionsLock = new Object()
         //let runningSolutionLock = new Object()
         //let solutionOnHoldLock = new Object()
-        let conflictLock = new Object()
+        //let conflictLock = new Object()
         let intentionLock = new Object()
         let intentionIdLock = new Object()
         //let solvingLock = new Object()
@@ -111,15 +111,15 @@
                 lock stateLock (fun () -> state <- planner.UpdateStateOnSolutionFinished(state,intention,plan))
                 None
         let updateConflicts newCons =
-            lock conflictLock (fun () -> conflicts <-  newCons )//Map.fold (fun cons desire inte -> Map.add desire inte cons) conflicts newCons )
+            lock intentionLock (fun () -> conflicts <-  newCons )//Map.fold (fun cons desire inte -> Map.add desire inte cons) conflicts newCons )
 
         let updateAndStartIntentions intentionExecuter intentionFilter currentIntentions updatedIntentions =
               let (_,difIntents) = Map.partition (fun id _ -> Map.containsKey id currentIntentions) updatedIntentions
               lock intentionLock (fun () -> intentions <- updatedIntentions)
-              Map.iter (fun id _ -> Async.Start <| intentionExecuter intentionFilter id) difIntents
+              Map.iter (fun id _ -> Async.Start <| intentionExecuter id) difIntents
 
         
-        let rec intentionHandler filter id =
+        let rec intentionHandler intentionBuilder id =
             async
                 {
                     
@@ -151,26 +151,24 @@
                                     running:=false  
                             
                         | None -> ()
-
-                        lock intentionLock 
-                                (fun () ->   
-                                    intentions <- Map.remove id intentions
-                                    lock conflictLock
-                                        (fun () ->
-                                            let a = pintent
-                                            let (newIntents,newCons) = List.fold (updateIntentions filter) (intentions,Map.empty) <| Map.toList conflicts
-                                            updateAndStartIntentions intentionHandler filter intentions newIntents
-                                            updateConflicts newCons 
-                                            ()            
-                                        )
-                                )
+                        lock intentionLock (fun () -> intentions <- Map.remove id intentions)
+                        let newState = lock stateLock (fun () -> state)
+                        intentionBuilder newState
+//                        lock intentionLock 
+//                                (fun () ->   
+//                                    
+//                                    let (newIntents,newCons) = List.fold (updateIntentions filter) (intentions,Map.empty) <| Map.toList conflicts
+//                                    updateAndStartIntentions intentionHandler filter intentions newIntents
+//                                    updateConflicts newCons 
+//                                    ()
+//                                )
 
                     | _ -> ()
                 }
         
         
         
-        let buildIntentions intentionFilter state =
+        let rec buildIntentions intentionFilter state =
             let newCons = lock intentionLock (fun () -> 
                     let (_,newIntention) = travelDesires 0 state desires
                     let parallelCalc = Array.Parallel.choose ( fun (p,ai) ->    
@@ -189,7 +187,9 @@
 //                    let (_,difIntents) = Map.partition (fun id _ -> Map.containsKey id currentIntentions) updatedIntentions
 //                    intentions <- updatedIntentions
 //                    Map.iter (fun id _ -> Async.Start <| intentionHandler intentionFilter id) difIntents
-                    updateAndStartIntentions intentionHandler intentionFilter currentIntentions updatedIntentions
+                    let builder = buildIntentions intentionFilter
+                    let handler = intentionHandler builder
+                    updateAndStartIntentions handler intentionFilter currentIntentions updatedIntentions
                     newConflicts
                 )
             updateConflicts newCons 
