@@ -40,28 +40,33 @@
         let updateIntentions (intentionEqual,intenfilter) (currentInts,curConflicts) (prio,intention) =
             //printf "%A Intentions: %A\n" (List.length <| Map.toList intentions) (List.map snd <| Map.toList intentions)
             //let allcurrentInts = List.map (fun (_,(_,i,_)) -> i) <| Map.toList currentInts
-            let allcurrentCons = List.map (fun (_,i) -> i) <| Map.toList curConflicts
-            let alreadyExists = List.exists (fun i -> intentionEqual (i, intention)) <| allcurrentCons
-            if alreadyExists then
-                (currentInts,curConflicts)
+//            let allcurrentcons = list.map (fun (_,i) -> i) <| map.tolist curconflicts
+//            let alreadyexists = list.exists (fun i -> intentionequal (i, intention)) <| allcurrentcons
+//            if alreadyexists then
+//                (currentints,curconflicts)
+//            else
+            let (conflics,harmonic) = Map.partition (fun  _ (_,i,_) ->  
+                                                    let filter = intenfilter (i,intention)
+                                                    match filter with
+                                                    | Conflictive -> true
+                                                    | Harmonic -> false
+                                                    ) currentInts
+            let highestPrio = Map.forall (fun _ (cp,_,_) -> prio < cp) conflics
+            
+            
+            let mappedConflicts = Map.ofSeq << Seq.map (fun (_,(desire,intent,_)) -> (desire,intent)) <| Map.toSeq conflics
+            if highestPrio then
+                let id = generateIntentionId()
+                let token = new CancellationTokenSource()
+                Map.iter (fun _ (_,_,t:CancellationTokenSource) -> t.Cancel()) conflics
+                let newIntentions = Map.add id (prio,intention,token) harmonic
+                let newConflicts = Map.ofList ((Map.toList mappedConflicts)@(Map.toList curConflicts))
+                (newIntentions,newConflicts)
             else
-                let (conflics,harmonic) = Map.partition (fun  _ (_,i,_) ->  
-                                                        let filter = intenfilter (i,intention)
-                                                        match filter with
-                                                        | Conflictive -> true
-                                                        | Harmonic -> false
-                                                        ) currentInts
-                let highestPrio = Map.forall (fun _ (cp,_,_) -> prio < cp) conflics
-            
-            
-                let mappedConflicts = Map.ofSeq << Seq.map (fun (_,(desire,intent,_)) -> (desire,intent)) <| Map.toSeq conflics
-                if highestPrio then
-                    let id = generateIntentionId()
-                    let token = new CancellationTokenSource()
-                    Map.iter (fun _ (_,_,t:CancellationTokenSource) -> t.Cancel()) conflics
-                    let newIntentions = Map.add id (prio,intention,token) harmonic
-                    let newConflicts = Map.ofList ((Map.toList mappedConflicts)@(Map.toList curConflicts))
-                    (newIntentions,newConflicts)
+                let allcurrentcons = List.map (fun (_,i) -> i) <| Map.toList curConflicts
+                let alreadyexists = List.exists (fun i -> intentionEqual (i, intention)) <| allcurrentcons
+                if alreadyexists then
+                    (currentInts, curConflicts)
                 else
                     (currentInts,Map.add prio intention curConflicts)
 
