@@ -42,6 +42,8 @@
         let isIntentionOnHold id =
             lock intentionLock (fun () -> Set.contains id onHold)
 
+        let finishedIntentionsEvent = new Event<EventHandler, EventArgs>()
+
         //The 3 modes intentions can be in Onhold, Planning and Executing
         let setIntentionAsOnHold id = 
             lock intentionLock (fun () -> 
@@ -109,27 +111,7 @@
                     let tryFindActu = List.tryFind (fun (actu:Actuator<_>) -> actu.CanPerformAction act ) actuators
                     match tryFindActu with
                     | Some actu ->
-                        let running = ref true
-                        while !running do
-                            let actionPerformed = 
-                                lock actu (fun () -> 
-                                    if actu.IsReady then
-                                        actu.PerformAction act
-                                        if actu.IsReady then
-                                            Some true
-                                        else 
-                                            Some false
-                                    else
-                                        None
-                                    )
-                            match actionPerformed with
-                            | Some true -> running := false
-                            | Some false -> 
-                                let! _ = Async.AwaitEvent actu.ActuatorReady
-                                running := false
-                            | None -> 
-                                let! _ = Async.AwaitEvent actu.ActuatorReady
-                                ()  
+                        lock actu (fun () -> actu.PerformActionBlockUntilFinished act)
                         return true
                     | None -> return false
                 }
@@ -158,12 +140,12 @@
               //let realCons = 
               lock intentionLock (fun () -> intentions <- updatedIntentions)
               Map.iter (fun id _ -> Async.Start <| intentionExecuter intentionFilter id) difIntents
-
+              Map.map (fun id value -> fst value ) newCons
         
         let rec planHandler intent (token:CancellationTokenSource) plan =
             async
                 {
-                    if token.IsCancellationRequested then
+                    if not token.IsCancellationRequested then
                         let actionAttempt = findNextAction intent plan
                         match actionAttempt with
                         | Choice1Of2 success -> return success
@@ -176,7 +158,7 @@
         
 
         
-        let rec intentionHandler filter id =
+        let rec intentionHandler finishedTrigger filter id =
             async
                 {
                     
@@ -204,9 +186,10 @@
                                 (fun () ->
                                     let a = pintent
                                     let (newIntents,newCons) = List.fold (updateIntentions filter) (intentions,Map.empty) <| Map.toList conflicts
-                                    let realCons = updateAndStartIntentions intentionHandler filter intentions newIntents newCons
+                                    let realCons = updateAndStartIntentions (intentionHandler finishedTrigger) filter intentions newIntents newCons
                                     updateConflicts realCons
-                                    ()            
+                                    if intentions.Count = 0 then
+                                        finishedTrigger()    
                                 )
 
                     | _ -> ()
@@ -214,33 +197,39 @@
         
         
         
-        let buildIntentions intentionFilter state =
+        let buildIntentions finishedTrigger intentionFilter state =
             let newCons = lock intentionLock (fun () -> 
                     let (_,newIntention) = travelDesires 0 state desires
-                    let parallelCalc = Array.Parallel.choose ( fun (p,ai) ->    
-                                                                                try
-                                                                                    let calcIntention = ai state
-                                                                                    match calcIntention with
-                                                                                    | Some i -> Some (p,i)
-                                                                                    | _ -> None
-                                                                                with
-                                                                                | e ->  printf "Intention Function crash: \n%A \n%A" ai e
-                                                                                        None
-                                                              )
+                    let parallelCalc = 
+                        Array.Parallel.choose 
+                            ( 
+                                fun (p,ai) ->    
+                                try
+                                    let calcIntention = ai state
+                                    match calcIntention with
+                                    | Some i -> Some (p,i)
+                                    | _ -> None
+                                with
+                                | e ->  printf "Intention Function crash: \n%A \n%A" ai e
+                                        None
+                            )
                     let newActualIntentions = List.ofArray ( parallelCalc (List.toArray newIntention) )
                     let currentIntentions = lock intentionLock (fun () -> intentions)
                     let (updatedIntentions,newConflicts) = List.fold (updateIntentions intentionFilter) (currentIntentions,Map.empty) newActualIntentions
 //                    let (_,difIntents) = Map.partition (fun id _ -> Map.containsKey id currentIntentions) updatedIntentions
 //                    intentions <- updatedIntentions
 //                    Map.iter (fun id _ -> Async.Start <| intentionHandler intentionFilter id) difIntents
-                    updateAndStartIntentions intentionHandler intentionFilter currentIntentions updatedIntentions newConflicts
+                    updateAndStartIntentions (intentionHandler finishedTrigger) intentionFilter currentIntentions updatedIntentions newConflicts
                     
                 )
             updateConflicts newCons 
         
+        member private this._triggerFinishedIntentions () = finishedIntentionsEvent.Trigger(this, new EventArgs())
 
+        [<CLIEvent>]
+        member this.FinishedIntentions = finishedIntentionsEvent.Publish
 
-
+        member this.State = lock stateLock (fun () -> state)
         member private this._actuatorReady () = ()
 //            let comp =
 //                    async
@@ -261,7 +250,7 @@
                                     ()
                                 }
             Async.Start(optimize)
-            buildIntentions (this.IsIntentionEqual,this.FilterIntention) state
+            buildIntentions (this._triggerFinishedIntentions) (this.IsIntentionEqual,this.FilterIntention) state
         
         abstract member FilterIntention : 'TIntention*'TIntention -> IntentionFilter
         abstract member AnalyzePercept : 'TPercept list*'TState -> 'TState
