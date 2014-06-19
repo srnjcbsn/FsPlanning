@@ -106,15 +106,24 @@
                     (currentInts,curConflicts) 
 
         
-        let actionHandler act = 
+        let actionHandler act (token:CancellationTokenSource)= 
             async
                 {
                     let tryFindActu = List.tryFind (fun (actu:Actuator<_>) -> actu.CanPerformAction act ) actuators
                     match tryFindActu with
                     | Some actu ->
-                        lock actu (fun () -> actu.PerformActionBlockUntilFinished act)
-                        return true
+                        let worked = 
+                            lock actu 
+                                (fun () ->
+                                    if not token.IsCancellationRequested then 
+                                        actu.PerformActionBlockUntilFinished act
+                                        true
+                                    else
+                                        false
+                                )
+                        return worked
                     | None -> return false
+                       
                 }
 
         let findNextAction intention plan =
@@ -144,15 +153,14 @@
         let rec planHandler intent (token:CancellationTokenSource) plan =
             async
                 {
-                    if not token.IsCancellationRequested then
-                        let actionAttempt = findNextAction intent plan
-                        match actionAttempt with
-                        | Choice1Of2 success -> return success
-                        | Choice2Of2 (act,rest) ->
-                            let! resolved = actionHandler act
-                            return! planHandler intent token rest
-                    else
-                        return false
+                    let actionAttempt = findNextAction intent plan
+                    match actionAttempt,token.IsCancellationRequested with
+                    | Choice1Of2 worked,_ -> return worked
+                    | Choice2Of2 (act,rest),false ->
+                        let! resolved = actionHandler act token
+                        return! planHandler intent token rest
+                    | _,true -> return false
+
                 }
         
 
