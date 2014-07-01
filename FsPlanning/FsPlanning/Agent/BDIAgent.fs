@@ -106,23 +106,20 @@
                     (currentInts,curConflicts) 
 
         
-        let actionHandler act (token:CancellationTokenSource)= 
+        let actionHandler isApplicable act (token:CancellationTokenSource) = 
             async
                 {
                     let tryFindActu = List.tryFind (fun (actu:Actuator<_>) -> actu.CanPerformAction act ) actuators
                     match tryFindActu with
                     | Some actu ->
-                        let worked = 
-                            lock actu 
-                                (fun () ->
-                                    if not token.IsCancellationRequested then 
-                                        actu.PerformActionBlockUntilFinished act
-                                        true
-                                    else
-                                        false
-                                )
-                        return worked
-                    | None -> return false
+                        lock actu 
+                            (fun () ->
+                                let freshstate = lock stateLock (fun () -> state)
+                                if not token.IsCancellationRequested &&  isApplicable(freshstate,act) then 
+                                    actu.PerformActionBlockUntilFinished act
+                            )
+                        
+                    | None -> ()
                        
                 }
 
@@ -150,22 +147,22 @@
               lock intentionLock (fun () -> intentions <- updatedIntentions)
               Map.iter (fun id _ -> Async.Start <| intentionExecuter intentionFilter id) difIntents
         
-        let rec planHandler intent (token:CancellationTokenSource) plan =
+        let rec planHandler isApplicable intent (token:CancellationTokenSource) plan =
             async
                 {
                     let actionAttempt = findNextAction intent plan
                     match actionAttempt,token.IsCancellationRequested with
                     | Choice1Of2 worked,_ -> return worked
                     | Choice2Of2 (act,rest),false ->
-                        let! resolved = actionHandler act token
-                        return! planHandler intent token rest
+                        do! actionHandler isApplicable act token
+                        return! planHandler isApplicable intent token rest
                     | _,true -> return false
 
                 }
         
 
         
-        let rec intentionHandler finishedTrigger filter id =
+        let rec intentionHandler isApplicable finishedTrigger filter id =
             async
                 {
                     
@@ -180,7 +177,7 @@
                                                     None
                         match planAttempt with
                         | Some plan ->
-                            let! success = planHandler intent token plan
+                            let! success = planHandler isApplicable intent token plan
                             ()                        
                         | None -> 
                             ()
@@ -189,7 +186,7 @@
                                 (fun () ->
                                     intentions <- Map.remove id intentions
                                     let (newIntents,newCons) = List.fold (updateIntentions filter) (intentions,Map.empty) <| Map.toList conflicts
-                                    updateAndStartIntentions (intentionHandler finishedTrigger) filter intentions newIntents 
+                                    updateAndStartIntentions (intentionHandler isApplicable finishedTrigger) filter intentions newIntents 
                                     updateConflicts newCons
                                     if intentions.Count = 0 then
                                         finishedTrigger()    
@@ -200,7 +197,7 @@
         
         
         
-        let buildIntentions finishedTrigger intentionFilter state =
+        let buildIntentions isApplicable finishedTrigger intentionFilter state =
             let newCons = lock intentionLock (fun () -> 
                     let (_,newIntention) = travelDesires 0 state desires
                     let parallelCalc = 
@@ -222,7 +219,7 @@
 //                    let (_,difIntents) = Map.partition (fun id _ -> Map.containsKey id currentIntentions) updatedIntentions
 //                    intentions <- updatedIntentions
 //                    Map.iter (fun id _ -> Async.Start <| intentionHandler intentionFilter id) difIntents
-                    updateAndStartIntentions (intentionHandler finishedTrigger) intentionFilter currentIntentions updatedIntentions
+                    updateAndStartIntentions (intentionHandler isApplicable finishedTrigger) intentionFilter currentIntentions updatedIntentions
                     newConflicts
                     
                 )
@@ -254,14 +251,14 @@
                                     ()
                                 }
             Async.Start(optimize)
-            buildIntentions (this._triggerFinishedIntentions) (this.IsIntentionEqual,this.FilterIntention) state
+            buildIntentions (this.IsActionApplicable) (this._triggerFinishedIntentions) (this.IsIntentionEqual,this.FilterIntention) state
         
         abstract member FilterIntention : 'TIntention*'TIntention -> IntentionFilter
         abstract member AnalyzePercept : 'TPercept list*'TState -> 'TState
         abstract member OptimizeState  : 'TState -> 'TState
         abstract member ImplementOptimizedState : 'TState*'TState -> 'TState
         abstract member IsIntentionEqual : 'TIntention*'TIntention -> bool
-        abstract member IsActionApplicable : 'State*'TAction -> bool
+        abstract member IsActionApplicable : 'TState*'TAction -> bool
 
         member this.AddSensor (sensor:Sensor<'TPercept>) = 
             sensors <- sensor :: sensors
