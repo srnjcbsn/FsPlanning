@@ -261,7 +261,7 @@
         abstract member OptimizeState  : 'TState -> 'TState
         abstract member ImplementOptimizedState : 'TState*'TState -> 'TState
         abstract member IsIntentionEqual : 'TIntention*'TIntention -> bool
-        abstract member IsActionApplicable : 'State*'TAction -> bool
+        abstract member IsActionApplicable : 'TState*'TAction -> bool
 
         member this.AddSensor (sensor:Sensor<'TPercept>) = 
             sensors <- sensor :: sensors
